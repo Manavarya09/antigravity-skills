@@ -1,8 +1,9 @@
 #!/bin/bash
+set -euo pipefail
 
 # Configuration
 CONFIG_FILE="skills_sources.json"
-TARGET_SOURCE=$1
+TARGET_SOURCE="${1:-}"
 
 # Check requirements
 if ! command -v jq &> /dev/null; then
@@ -73,7 +74,7 @@ for ((i=0; i<count; i++)); do
     
     echo "  Cloning to temporary directory..."
     if ! git clone --quiet --depth 1 --branch "$branch" "$repo_url" "$SKILL_TEMP"; then
-        echo "  ❌ Failed to clone $name"
+        echo "  ❌ Failed to clone $name" >&2
         continue
     fi
 
@@ -127,7 +128,7 @@ for ((i=0; i<count; i++)); do
                 while IFS= read -r inc; do
                    if [ -n "$inc" ]; then
                         # Remove leading slash if present
-                        clean_inc=${inc#/}
+                        clean_inc="${inc#/}"
                         item_path="$source_path/$clean_inc"
                         if [ -e "$item_path" ]; then
                             sources_to_copy+=("$item_path")
@@ -138,13 +139,13 @@ for ((i=0; i<count; i++)); do
                 done <<< "$includes_json"
 
                 if [ ${#sources_to_copy[@]} -gt 0 ]; then
-                    rsync $rsync_opts "${exclude_args[@]}" "${sources_to_copy[@]}" "$dest_sub/"
+                    rsync "$rsync_opts" ${exclude_args[@]+"${exclude_args[@]}"} "${sources_to_copy[@]}" "$dest_sub/"
                 else
                     echo "  ⚠️ No valid items found to include for $name"
                 fi
             else
                 # Default: Copy everything from source directory
-                rsync $rsync_opts "${exclude_args[@]}" "$source_path/" "$dest_sub/"
+                rsync "$rsync_opts" ${exclude_args[@]+"${exclude_args[@]}"} "$source_path/" "$dest_sub/"
             fi
         else
             # File copy
